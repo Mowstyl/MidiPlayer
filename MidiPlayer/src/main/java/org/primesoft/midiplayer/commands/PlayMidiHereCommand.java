@@ -51,6 +51,7 @@ import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.MidiParser;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
+import org.primesoft.midiplayer.track.LocationTrack;
 import org.primesoft.midiplayer.track.PlayerTrack;
 
 import java.io.File;
@@ -62,28 +63,16 @@ import static org.primesoft.midiplayer.MidiPlayerMain.say;
  * Play midi command
  * @author SBPrime
  */
-public class PlayMidiCommand extends BaseCommand implements Listener {
+public class PlayMidiHereCommand extends BaseCommand {
 
     private final MusicPlayer m_player;
-    private final Map<UUID, PlayerTrack> m_tracks;
+    private final Map<UUID, LocationTrack> m_tracks;
     private final JavaPlugin m_plugin;
 
-    public PlayMidiCommand(JavaPlugin plugin, MusicPlayer player) {
+    public PlayMidiHereCommand(JavaPlugin plugin, MusicPlayer player) {
         m_plugin = plugin;
         m_player = player;
-        m_tracks = new HashMap<UUID, PlayerTrack>();
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        Player p = event.getPlayer();
-        UUID uuid = p.getUniqueId();
-        synchronized (m_tracks) {
-            if (m_tracks.containsKey(uuid)) {
-                m_player.removeTrack(m_tracks.get(uuid));
-                m_tracks.remove(uuid);
-            }
-        }
+        m_tracks = new HashMap<UUID, LocationTrack>();
     }
 
     @Override
@@ -94,12 +83,6 @@ public class PlayMidiCommand extends BaseCommand implements Listener {
         }
 
         UUID uuid = player.getUniqueId();
-        synchronized (m_tracks) {
-            if (m_tracks.containsKey(uuid)) {
-                m_player.removeTrack(m_tracks.get(uuid));
-                m_tracks.remove(uuid);
-            }
-        }
 
         String fileName = args != null && args.length > 0 ? args[0] : null;
         if (fileName == null) {
@@ -116,10 +99,12 @@ public class PlayMidiCommand extends BaseCommand implements Listener {
         }
 
         final NoteFrame[] notes = noteTrack.getNotes();
-        final PlayerTrack track = new PlayerTrack(player, notes);
+        final LocationTrack track = new LocationTrack(player.getLocation(), notes);
         synchronized (m_tracks) {
             m_tracks.put(uuid, track);
         }
+        for(Player player23 : player.getWorld().getPlayers())
+            track.addPlayer(player23);
         m_player.playTrack(track);
 
         return true;

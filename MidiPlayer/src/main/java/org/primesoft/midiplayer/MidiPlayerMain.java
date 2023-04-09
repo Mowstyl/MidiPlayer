@@ -40,17 +40,16 @@
  */
 package org.primesoft.midiplayer;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bukkit.Server;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.primesoft.midiplayer.commands.GlobalPlayMidiCommand;
-import org.primesoft.midiplayer.commands.PlayMidiCommand;
-import org.primesoft.midiplayer.commands.ReloadCommand;
+import org.primesoft.midiplayer.commands.*;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -162,19 +161,33 @@ public class MidiPlayerMain extends JavaPlugin {
         m_reloadCommandHandler = new ReloadCommand(this);
         GlobalPlayMidiCommand playGlobalCommandHandler = new GlobalPlayMidiCommand(this, m_musicPlayer);
         PlayMidiCommand playCommandHandler = new PlayMidiCommand(this, m_musicPlayer);
+        GiveDiscCommand giveDiscCommand = new GiveDiscCommand(this);
+        PlayMidiHereCommand playhereCommandHandler = new PlayMidiHereCommand(this, m_musicPlayer);
         
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents( playCommandHandler, this);
 
+        pm.registerEvents(new JukeboxListener(this),this);
+
         try {
             PluginCommand commandPlayGlobal = getCommand("playglobalmidi");
             commandPlayGlobal.setExecutor(playGlobalCommandHandler);
+            commandPlayGlobal.setTabCompleter(playGlobalCommandHandler);
 
             PluginCommand commandReload = getCommand("mpreload");
             commandReload.setExecutor(m_reloadCommandHandler);
 
             PluginCommand commandPlay = getCommand("playmidi");
             commandPlay.setExecutor(playCommandHandler);
+            commandPlay.setTabCompleter(playCommandHandler);
+
+            PluginCommand commandPlayhere = getCommand("playmidihere");
+            commandPlayhere.setExecutor(playhereCommandHandler);
+            commandPlayhere.setTabCompleter(playhereCommandHandler);
+
+            PluginCommand giveDisc = getCommand("givedisc");
+            giveDisc.setExecutor(giveDiscCommand);
+            giveDisc.setTabCompleter(giveDiscCommand);
         }
         catch (NullPointerException ex) {
             log(Level.WARNING, "Error initializing commands");

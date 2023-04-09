@@ -40,14 +40,12 @@
  */
 package org.primesoft.midiplayer.track;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.bukkit.entity.Player;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This is a basic track that holds a player list

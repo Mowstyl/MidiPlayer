@@ -2,7 +2,7 @@ name: ${project.name}
 main: org.primesoft.midiplayer.MidiPlayerMain
 version: ${project.version}
 authors: [SBPrime]
-api-version: 1.13
+api-version: 1.19
 description: ${project.description}
 commands:
   mpreload:
@@ -14,6 +14,15 @@ commands:
     usage: /<command>
     permission: midiplayer.play
     aliases: play
+  givedisc:
+    description: 'Gives the disc a midi disc'
+    usage: /<command>
+    permission: midiplayer.play
+  playmidihere:
+    description: 'Play midi file for calling player'
+    usage: /<command>
+    permission: midiplayer.play
+    aliases: playhere
   playglobalmidi:
     description: 'Play midi file for all players on the server'
     usage: /<command>

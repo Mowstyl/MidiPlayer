@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.primesoft</groupId>
     <artifactId>MidiPlayer</artifactId>
-    <version>0.3.2</version>
+    <version>0.3.3</version>
     <name>MidiPlayer</name>
     <description>A plugin that allows you to play custom music on your server</description>
     <build>
@@ -79,7 +79,7 @@
         <dependency>
            <groupId>org.spigotmc</groupId>
            <artifactId>spigot-api</artifactId>
-           <version>1.15.2-R0.1-SNAPSHOT</version>
+           <version>1.19.3-R0.1-SNAPSHOT</version>
            <scope>provided</scope>
         </dependency>
         <dependency>

@@ -40,17 +40,18 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import java.io.File;
-import java.util.logging.Level;
-
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.primesoft.midiplayer.configuration.ConfigProvider;
 import org.primesoft.midiplayer.MidiPlayerMain;
-import static org.primesoft.midiplayer.MidiPlayerMain.log;
 import org.primesoft.midiplayer.VersionChecker;
+import org.primesoft.midiplayer.configuration.ConfigProvider;
 import org.primesoft.midiplayer.instruments.MapFileParser;
+
+import java.io.File;
+import java.util.logging.Level;
+
+import static org.primesoft.midiplayer.MidiPlayerMain.log;
 
 /**
  * Reload configuration command

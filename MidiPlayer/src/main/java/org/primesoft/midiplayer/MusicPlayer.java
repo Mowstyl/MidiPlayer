@@ -40,11 +40,12 @@
  */
 package org.primesoft.midiplayer;
 
-import org.primesoft.midiplayer.track.BaseTrack;
-import java.util.ArrayList;
-import java.util.List;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
+import org.primesoft.midiplayer.track.BaseTrack;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main player timer class

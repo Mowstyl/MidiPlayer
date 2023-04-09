@@ -40,20 +40,21 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import java.io.File;
-import java.util.logging.Level;
-
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.primesoft.midiplayer.MusicPlayer;
-import static org.primesoft.midiplayer.MidiPlayerMain.say;
-import static org.primesoft.midiplayer.MidiPlayerMain.log;
 import org.primesoft.midiplayer.midiparser.MidiParser;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
 import org.primesoft.midiplayer.track.GlobalTrack;
+
+import java.io.File;
+import java.util.logging.Level;
+
+import static org.primesoft.midiplayer.MidiPlayerMain.log;
+import static org.primesoft.midiplayer.MidiPlayerMain.say;
 
 /**
  * Play global midi music command
