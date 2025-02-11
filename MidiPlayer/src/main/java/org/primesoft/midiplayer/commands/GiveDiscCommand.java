@@ -1,29 +1,36 @@
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.primesoft.midiplayer.MidiPlayerMain;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class GiveDiscCommand extends BaseCommand{
+public class GiveDiscCommand extends BaseCommand {
+    public static String SONG_KEY = "SONG_NAME";
 
     private MidiPlayerMain m_plugin;
+    private NamespacedKey discKey;
 
     public GiveDiscCommand(MidiPlayerMain main){
-        this.m_plugin = main;
+        m_plugin = main;
+        discKey = new NamespacedKey(m_plugin, SONG_KEY);
     }
 
     @Override
@@ -60,14 +67,20 @@ public class GiveDiscCommand extends BaseCommand{
                     Material.MUSIC_DISC_STAL,
                     Material.MUSIC_DISC_STRAD,
                     Material.MUSIC_DISC_WAIT,
-                    Material.MUSIC_DISC_WARD
+                    Material.MUSIC_DISC_WARD,
+                    Material.MUSIC_DISC_CREATOR,
+                    Material.MUSIC_DISC_CREATOR_MUSIC_BOX,
+                    Material.MUSIC_DISC_PRECIPICE,
+                    Material.MUSIC_DISC_RELIC
             };
             FileConfiguration discyml = YamlConfiguration.loadConfiguration(discyamlfile);
-            for(File f : m_plugin.getDataFolder().listFiles()){
+            for(File f : m_plugin.getDataFolder().listFiles()) {
                 if(f.getName().endsWith(".mid")){
-                    discyml.set(f.getName().substring(0,f.getName().length()-4)+".material",discs[ThreadLocalRandom.current().nextInt(discs.length)].name());
-                    discyml.set(f.getName().substring(0,f.getName().length()-4)+".displayname",f.getName().substring(0,f.getName().length()-4));
-                    discyml.set(f.getName().substring(0,f.getName().length()-4)+".lore", Arrays.asList("-Midi"));
+                    String songName = f.getName().substring(0, f.getName().length() - 4);
+                    discyml.set(songName + ".material", discs[ThreadLocalRandom.current().nextInt(discs.length)].name());
+                    discyml.set(songName + ".displayname", "MIDI Disc");
+                    discyml.set(songName + ".rarity", ItemRarity.COMMON.name());
+                    discyml.set(songName + ".lore", Collections.singletonList(songName.replace('_', ' ')));
                 }
             }
             try {
@@ -78,27 +91,38 @@ public class GiveDiscCommand extends BaseCommand{
         }
 
         FileConfiguration discyml = YamlConfiguration.loadConfiguration(discyamlfile);
-        Material defaultDisc = Material.MUSIC_DISC_BLOCKS;
-        String displayname = "Midi Disc";
-        List<String> lore = new LinkedList<>();
 
-        String songname = args[0].substring(0,args[0].length()-4);
+        Material discMaterial = Material.MUSIC_DISC_BLOCKS;
+        String displayName;
+        ItemRarity rarity;
+        List<String> lore;
+        String songName = args[0].substring(0,args[0].length() - 4);
 
-        if(discyml.contains(songname)){
-            defaultDisc = Material.matchMaterial(discyml.getString(songname+".material"));
-            displayname = discyml.getString(songname+".displayname");
-            lore = discyml.getStringList(songname+".lore");
+        if(discyml.contains(songName)){
+            discMaterial = Material.matchMaterial(discyml.getString(songName + ".material", discMaterial.name()));
+            if (discMaterial == null) {
+                discMaterial = Material.MUSIC_DISC_BLOCKS;
+                sender.sendMessage("[WARNING] Material not working");
+            }
+            displayName = discyml.getString(songName + ".displayname");
+            lore = discyml.getStringList(songName + ".lore");
+            rarity = ItemRarity.valueOf(discyml.getString(songName + ".rarity", "COMMON"));
         }
-
-        lore.add(ChatColor.BLACK+"Filename:"+args[0]);
-
-        ItemStack disc = new ItemStack(defaultDisc);
-        ItemMeta im = disc.getItemMeta();
-        im.setDisplayName(displayname);
-        im.setLore(lore);
-        disc.setItemMeta(im);
+        else {
+            displayName = "MIDI Disc";
+            lore = Collections.emptyList();
+            rarity = ItemRarity.COMMON;
+        }
+        ItemStack disc = new ItemStack(discMaterial);
+        disc.editMeta((meta) -> {
+            meta.displayName(MiniMessage.miniMessage().deserialize(displayName));
+            meta.setRarity(rarity);
+            meta.setLore(lore);
+            PersistentDataContainer data = meta.getPersistentDataContainer();
+            data.set(discKey, PersistentDataType.STRING, args[0]);
+        });
         player.getInventory().addItem(disc);
-        sender.sendMessage("Giving Midi Music disc \""+songname+"\".");
+        sender.sendMessage("Giving Midi Music disc \"" + songName + "\".");
         return super.onCommand(sender, cmnd, name, args);
     }
 

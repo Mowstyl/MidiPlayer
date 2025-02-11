@@ -128,7 +128,7 @@ public class PlayMidiCommand extends BaseCommand implements Listener {
     @Override
     public List<String> onTabComplete(CommandSender cs, Command cmnd, String name, String[] args) {
         List<String> midi = new LinkedList<>();
-        for(File f : m_plugin.getDataFolder().listFiles()){
+        for(File f : m_plugin.getDataFolder().listFiles()) {
             if(f.getName().endsWith(".mid")){
                 midi.add(f.getName());
             }
