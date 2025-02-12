@@ -56,7 +56,7 @@ public abstract class BasePlayerTrack extends BaseTrack {
     private final Set<Player> m_players;
 
     @Override
-    protected Collection<? extends Player> getPlayers() {
+    public Collection<? extends Player> getPlayers() {
         synchronized (m_players) {
             return new HashSet<>(m_players);
         }
@@ -116,7 +116,7 @@ public abstract class BasePlayerTrack extends BaseTrack {
     
     /**
      * Remove player listening to track
-     * @param player The player to be removed from the listeining list
+     * @param player The player to be removed from the listening list
      * @return Whether the player could be removed or not
      */
     public boolean removePlayer(Player player) {
@@ -125,6 +125,17 @@ public abstract class BasePlayerTrack extends BaseTrack {
         }
         synchronized (m_players) {
             return m_players.remove(player);
+        }
+    }
+
+
+    /**
+     * Returns the number of players listening to the track
+     * @return The number of players listening to the track
+     */
+    public int countPlayers() {
+        synchronized (m_players) {
+            return m_players.size();
         }
     }
 }

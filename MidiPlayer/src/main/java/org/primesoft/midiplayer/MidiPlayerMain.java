@@ -41,11 +41,13 @@
 package org.primesoft.midiplayer;
 
 import org.bukkit.Server;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.primesoft.midiplayer.commands.*;
 
 import java.util.logging.Level;
@@ -57,7 +59,7 @@ import java.util.logging.Logger;
  */
 public class MidiPlayerMain extends JavaPlugin {
 
-    private static final Logger s_log = Logger.getLogger("Minecraft.MidiPlayer");
+    private static Logger s_log;
     private static String s_prefix = null;
     private static final String s_logFormat = "%s %s";
 
@@ -82,17 +84,27 @@ public class MidiPlayerMain extends JavaPlugin {
     }
 
     /**
-     * Sent message directly to player
+     * Sent message directly to CommandSender and Console
      *
-     * @param player Player who is going to receive the message
+     * @param sender CommandSender who is going to receive the message
      * @param msg Message to send to the player
      */
-    public static void say(Player player, String msg) {
-        if (player == null) {
-            log(Level.INFO, msg);
-        } else {
-            player.sendRawMessage(msg);
+    public static void say(CommandSender sender, String msg) {
+        say(sender, msg, Level.INFO);
+    }
+
+    /**
+     * Sent message directly to CommandSender and Console
+     *
+     * @param sender Player who is going to receive the message
+     * @param msg Message to send to the player
+     * @param level Logging level of the message
+     */
+    public static void say(@Nullable CommandSender sender, String msg, Level level) {
+        if (sender != null && !(sender instanceof ConsoleCommandSender)) {
+            sender.sendMessage(msg);
         }
+        log(level, msg);
     }
 
     /**
@@ -119,6 +131,15 @@ public class MidiPlayerMain extends JavaPlugin {
      * The reload command handler
      */
     private ReloadCommand m_reloadCommandHandler;
+
+    /**
+     * The /givedisc command handler
+     */
+    private GiveDiscCommand giveDiscCommand;
+
+    public GiveDiscCommand getGiveDiscCommand() {
+        return giveDiscCommand;
+    }
     
     
     /**
@@ -134,6 +155,11 @@ public class MidiPlayerMain extends JavaPlugin {
     }
 
     @Override
+    public void onLoad() {
+        s_log = getLogger();
+    }
+
+        @Override
     public void onEnable() {        
         Server server = getServer();
         PluginDescriptionFile desc = getDescription();
@@ -143,12 +169,14 @@ public class MidiPlayerMain extends JavaPlugin {
         m_version = desc.getVersion();
         m_musicPlayer = new MusicPlayer(this, server.getScheduler());
 
-        InitializeCommands();
+        initializeCommands();
                 
-        if (!m_reloadCommandHandler.ReloadConfig(null)) {
+        if (!m_reloadCommandHandler.reloadConfig(null)) {
             log(Level.WARNING, "Error loading config");
             return;
         }
+
+        GiveDiscCommand.initDiscYAML(this);
 
         super.onEnable();
     }
@@ -157,11 +185,13 @@ public class MidiPlayerMain extends JavaPlugin {
     /**
      * Initialize the commands
      */
-    private void InitializeCommands() {
+    private void initializeCommands() {
         m_reloadCommandHandler = new ReloadCommand(this);
         GlobalPlayMidiCommand playGlobalCommandHandler = new GlobalPlayMidiCommand(this, m_musicPlayer);
+        GlobalStopMidiCommand stopGlobalCommandHandler = new GlobalStopMidiCommand(this, m_musicPlayer);
         PlayMidiCommand playCommandHandler = new PlayMidiCommand(this, m_musicPlayer);
-        GiveDiscCommand giveDiscCommand = new GiveDiscCommand(this);
+        StopMidiCommand stopCommandHandler = new StopMidiCommand(this, m_musicPlayer);
+        giveDiscCommand = new GiveDiscCommand(this);
         PlayMidiHereCommand playhereCommandHandler = new PlayMidiHereCommand(this, m_musicPlayer);
         
         PluginManager pm = getServer().getPluginManager();
@@ -170,16 +200,24 @@ public class MidiPlayerMain extends JavaPlugin {
         pm.registerEvents(new JukeboxListener(this),this);
 
         try {
+            PluginCommand commandReload = getCommand("mpreload");
+            commandReload.setExecutor(m_reloadCommandHandler);
+
             PluginCommand commandPlayGlobal = getCommand("playglobalmidi");
             commandPlayGlobal.setExecutor(playGlobalCommandHandler);
             commandPlayGlobal.setTabCompleter(playGlobalCommandHandler);
 
-            PluginCommand commandReload = getCommand("mpreload");
-            commandReload.setExecutor(m_reloadCommandHandler);
+            PluginCommand commandStopGlobal = getCommand("stopglobalmidi");
+            commandStopGlobal.setExecutor(stopGlobalCommandHandler);
+            commandStopGlobal.setTabCompleter(stopGlobalCommandHandler);
 
             PluginCommand commandPlay = getCommand("playmidi");
             commandPlay.setExecutor(playCommandHandler);
             commandPlay.setTabCompleter(playCommandHandler);
+
+            PluginCommand commandStop = getCommand("stopmidi");
+            commandStop.setExecutor(stopCommandHandler);
+            commandStop.setTabCompleter(stopCommandHandler);
 
             PluginCommand commandPlayhere = getCommand("playmidihere");
             commandPlayhere.setExecutor(playhereCommandHandler);

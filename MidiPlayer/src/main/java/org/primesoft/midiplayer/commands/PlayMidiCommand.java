@@ -40,6 +40,7 @@
  */
 package org.primesoft.midiplayer.commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -47,16 +48,17 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
-import org.primesoft.midiplayer.midiparser.MidiParser;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
+import org.primesoft.midiplayer.track.BasePlayerTrack;
+import org.primesoft.midiplayer.track.LocationTrack;
 import org.primesoft.midiplayer.track.PlayerTrack;
 
-import java.io.File;
 import java.util.*;
 
-import static org.primesoft.midiplayer.MidiPlayerMain.say;
 
 /**
  * Play midi command
@@ -65,13 +67,12 @@ import static org.primesoft.midiplayer.MidiPlayerMain.say;
 public class PlayMidiCommand extends BaseCommand implements Listener {
 
     private final MusicPlayer m_player;
-    private final Map<UUID, PlayerTrack> m_tracks;
+    protected static final Map<UUID, BasePlayerTrack> m_tracks = new HashMap<>();
     private final JavaPlugin m_plugin;
 
-    public PlayMidiCommand(JavaPlugin plugin, MusicPlayer player) {
+    public PlayMidiCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
         m_plugin = plugin;
         m_player = player;
-        m_tracks = new HashMap<UUID, PlayerTrack>();
     }
 
     @EventHandler
@@ -79,60 +80,55 @@ public class PlayMidiCommand extends BaseCommand implements Listener {
         Player p = event.getPlayer();
         UUID uuid = p.getUniqueId();
         synchronized (m_tracks) {
-            if (m_tracks.containsKey(uuid)) {
-                m_player.removeTrack(m_tracks.get(uuid));
-                m_tracks.remove(uuid);
-            }
+            BasePlayerTrack track = m_tracks.remove(uuid);
+            if (track != null)
+                m_player.removeTrack(track);
         }
     }
 
     @Override
-    public boolean onCommand(CommandSender cs, Command cmnd, String name, String[] args) {
-        Player player = cs instanceof Player ? (Player) cs : null;
-        if (player == null) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
+        if (args.length < 1 || args.length > 2)
             return false;
-        }
 
-        UUID uuid = player.getUniqueId();
-        synchronized (m_tracks) {
-            if (m_tracks.containsKey(uuid)) {
-                m_player.removeTrack(m_tracks.get(uuid));
-                m_tracks.remove(uuid);
-            }
-        }
+        List<Player> audience = BaseCommand.getPlayers(sender, args, 1, true);
+        if (audience == null || audience.isEmpty())
+            return true;
 
-        String fileName = args != null && args.length > 0 ? args[0] : null;
-        if (fileName == null) {
+        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, sender, args, 0);
+        if (noteTrack == null)
+            return false;
+        else if (noteTrack.isError())
             return true;
-        }
-
-        NoteTrack noteTrack = MidiParser.loadFile(new File(m_plugin.getDataFolder(), fileName));
-        if (noteTrack == null) {
-            say(player, "Error loading midi track");
-            return true;
-        } else if (noteTrack.isError()) {
-            say(player, "Error loading midi track: " + noteTrack.getMessage());
-            return true;
-        }
 
         final NoteFrame[] notes = noteTrack.getNotes();
-        final PlayerTrack track = new PlayerTrack(player, notes);
-        synchronized (m_tracks) {
-            m_tracks.put(uuid, track);
-        }
+
+        final PlayerTrack track = new PlayerTrack(audience.toArray(new Player[0]), notes);
+        audience.forEach(player -> {
+            UUID uuid = player.getUniqueId();
+            synchronized (m_tracks) {
+                BasePlayerTrack oldTrack = m_tracks.put(uuid, track);
+                if (oldTrack != null) {
+                    oldTrack.removePlayer(player);
+                    if (oldTrack.countPlayers() == 0) {
+                        m_player.removeTrack(oldTrack);
+                        if (oldTrack instanceof LocationTrack lt)
+                            JukeboxListener.activeJukebox.remove(lt.getLocation());
+                    }
+                }
+            }
+        });
         m_player.playTrack(track);
 
         return true;
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender cs, Command cmnd, String name, String[] args) {
-        List<String> midi = new LinkedList<>();
-        for(File f : m_plugin.getDataFolder().listFiles()) {
-            if(f.getName().endsWith(".mid")){
-                midi.add(f.getName());
-            }
-        }
-        return midi;
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
+        if (args.length == 1)
+            return getMIDIList(m_plugin, args[0]);
+        else if (args.length == 2)
+            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+        return null;
     }
 }

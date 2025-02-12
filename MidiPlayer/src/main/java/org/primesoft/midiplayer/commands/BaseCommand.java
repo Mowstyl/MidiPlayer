@@ -40,26 +40,129 @@
  */
 package org.primesoft.midiplayer.commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.primesoft.midiplayer.midiparser.MidiParser;
+import org.primesoft.midiplayer.midiparser.NoteTrack;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+
 
 /**
  *
  * @author prime
  */
 public abstract class BaseCommand implements CommandExecutor, TabCompleter {
+
     @Override
-    public boolean onCommand(CommandSender cs, Command cmnd, String name, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
         return true;
     }
     
     @Override
-    public List<String> onTabComplete(CommandSender cs, Command cmnd, String name, String[] args) {
-        return new ArrayList<String>();
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
+        return new ArrayList<>();
+    }
+
+    public static @Nullable List<Player> getPlayers(@NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId, boolean acceptSender) {
+        List<Entity> entities = getEntities(sender, args, argId, acceptSender);
+        if (entities == null)
+            return null;
+        return entities.stream()
+                .filter(e -> e instanceof Player)
+                .map(e -> (Player) e)
+                .toList();
+    }
+
+    public static @Nullable List<Entity> getEntities(@NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId, boolean acceptSender) {
+        List<Entity> audience = null;
+        boolean hasTargetArg = args.length > argId;
+        if (hasTargetArg) {
+            Player target = Bukkit.getPlayer(args[argId]);
+            if (target == null) {
+                try {
+                    audience = Bukkit.selectEntities(sender, args[argId]);
+                }
+                catch (IllegalArgumentException ex) {
+                    sender.sendMessage("Unknown player: " + args[argId]);
+                }
+            }
+            else {
+                audience = List.of(target);
+            }
+        }
+        else if (acceptSender) {
+            if (sender instanceof Player player)
+                audience = List.of(player);
+            else
+                sender.sendMessage("You must provide a target player if you are not one");
+        }
+        else {
+            sender.sendMessage("You must provide a target player if you are not one");
+        }
+        return audience;
+    }
+
+    public static @Nullable String getTrackName(@NotNull JavaPlugin plugin, @NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId) {
+        String fileName = args.length > argId ? args[argId] : null;
+        if (fileName == null) {
+            sender.sendMessage("No MIDI track specified");
+            return null;
+        }
+
+        if (!new File(plugin.getDataFolder(), fileName).exists()) {
+            sender.sendMessage("The specified file does not exist");
+            return null;
+        }
+        else if (!fileName.endsWith(".mid")) {
+            sender.sendMessage("MIDI files must end with .mid");
+            return null;
+        }
+
+        return fileName;
+    }
+
+    public static @Nullable NoteTrack getNoteTrack(@NotNull JavaPlugin plugin, @NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId) {
+        String fileName = args.length > argId ? args[argId] : null;
+        if (fileName == null) {
+            sender.sendMessage("No MIDI track specified");
+            return null;
+        }
+
+        NoteTrack noteTrack = MidiParser.loadFile(new File(plugin.getDataFolder(), fileName));
+        if (noteTrack == null) {
+            sender.sendMessage("Error loading MIDI track");
+            return null;
+        } else if (noteTrack.isError()) {
+            sender.sendMessage("Error loading MIDI track: " + noteTrack.getMessage());
+        }
+
+        return noteTrack;
+    }
+
+    public static @NotNull List<String> getMIDIList(@NotNull JavaPlugin plugin, @NotNull String nameStart) {
+        List<String> midi = new LinkedList<>();
+        File[] files = plugin.getDataFolder().listFiles();
+        if (files == null)
+            return midi;
+
+        nameStart = nameStart.toLowerCase();
+        for (File f : files) {
+            String fileName = f.getName();
+            if (fileName.endsWith(".mid") && fileName.toLowerCase().startsWith(nameStart))
+                midi.add(f.getName());
+        }
+        return midi;
     }
 }

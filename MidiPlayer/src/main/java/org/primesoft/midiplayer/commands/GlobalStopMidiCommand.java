@@ -40,94 +40,43 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.Location;
-import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
-import org.primesoft.midiplayer.midiparser.NoteFrame;
-import org.primesoft.midiplayer.midiparser.NoteTrack;
-import org.primesoft.midiplayer.track.BasePlayerTrack;
-import org.primesoft.midiplayer.track.LocationTrack;
-
-import java.util.*;
+import org.primesoft.midiplayer.track.GlobalTrack;
 
 
 /**
- * Play midi command
+ * Play global midi music command
  * @author SBPrime
  */
-public class PlayMidiHereCommand extends BaseCommand {
+public class GlobalStopMidiCommand extends BaseCommand {
 
     private final MusicPlayer m_player;
     private final JavaPlugin m_plugin;
 
-    public PlayMidiHereCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
+    public GlobalStopMidiCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
         m_plugin = plugin;
         m_player = player;
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length < 1 || args.length > 2)
+        if (args.length != 0)
             return false;
-
-        Location loc;
-        if (sender instanceof Player player)
-            loc = player.getLocation();
-        else if (sender instanceof BlockCommandSender cBlock)
-            loc = cBlock.getBlock().getLocation();
-        else {
-            sender.sendMessage("This command has to be run by an entity or a block");
-            return true;
-        }
-
-        double range = -1;
-        if (args.length > 1) {
-            try {
-                range = Double.parseDouble(args[1]);
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(args[1] + " is not a number!");
-                return false;
-            }
-        }
-
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, sender, args, 0);
-        if (noteTrack == null)
-            return false;
-        else if (noteTrack.isError())
-            return true;
-
-        final NoteFrame[] notes = noteTrack.getNotes();
-        Collection<Player> audience = range < 0 ? loc.getWorld().getPlayers() : loc.getNearbyPlayers(range);
-        final LocationTrack track = new LocationTrack(loc, audience.toArray(new Player[0]), notes);
-        audience.forEach(player -> {
-            UUID uuid = player.getUniqueId();
-            synchronized (PlayMidiCommand.m_tracks) {
-                BasePlayerTrack oldTrack = PlayMidiCommand.m_tracks.put(uuid, track);
-                if (oldTrack != null) {
-                    oldTrack.removePlayer(player);
-                    if (oldTrack.countPlayers() == 0) {
-                        m_player.removeTrack(oldTrack);
-                        if (oldTrack instanceof LocationTrack lt)
-                            JukeboxListener.activeJukebox.remove(lt.getLocation());
-                    }
+        GlobalTrack track = GlobalPlayMidiCommand.getGlobalTrack();
+        if (track != null) {
+            track.getPlayers().forEach(p -> {
+                synchronized (PlayMidiCommand.m_tracks) {
+                    PlayMidiCommand.m_tracks.remove(p.getUniqueId());
                 }
-            }
-        });
-        m_player.playTrack(track);
-
+            });
+        }
+        boolean res = m_player.removeTrack(track);
+        if (!res)
+            sender.sendMessage("There was no global track being played");
         return true;
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length == 1)
-            return getMIDIList(m_plugin, args[0]);
-        return null;
     }
 }

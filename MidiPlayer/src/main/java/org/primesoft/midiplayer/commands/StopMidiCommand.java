@@ -40,86 +40,49 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.Location;
-import org.bukkit.command.BlockCommandSender;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
-import org.primesoft.midiplayer.midiparser.NoteFrame;
-import org.primesoft.midiplayer.midiparser.NoteTrack;
 import org.primesoft.midiplayer.track.BasePlayerTrack;
-import org.primesoft.midiplayer.track.LocationTrack;
 
-import java.util.*;
-
+import java.util.List;
 
 /**
  * Play midi command
  * @author SBPrime
  */
-public class PlayMidiHereCommand extends BaseCommand {
+public class StopMidiCommand extends BaseCommand implements Listener {
 
     private final MusicPlayer m_player;
     private final JavaPlugin m_plugin;
 
-    public PlayMidiHereCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
+    public StopMidiCommand(JavaPlugin plugin, MusicPlayer player) {
         m_plugin = plugin;
         m_player = player;
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length < 1 || args.length > 2)
+        if (args.length > 1)
             return false;
 
-        Location loc;
-        if (sender instanceof Player player)
-            loc = player.getLocation();
-        else if (sender instanceof BlockCommandSender cBlock)
-            loc = cBlock.getBlock().getLocation();
-        else {
-            sender.sendMessage("This command has to be run by an entity or a block");
-            return true;
-        }
-
-        double range = -1;
-        if (args.length > 1) {
-            try {
-                range = Double.parseDouble(args[1]);
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(args[1] + " is not a number!");
-                return false;
-            }
-        }
-
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, sender, args, 0);
-        if (noteTrack == null)
-            return false;
-        else if (noteTrack.isError())
+        List<Player> audience = BaseCommand.getPlayers(sender, args, 0, true);
+        if (audience == null || audience.isEmpty())
             return true;
 
-        final NoteFrame[] notes = noteTrack.getNotes();
-        Collection<Player> audience = range < 0 ? loc.getWorld().getPlayers() : loc.getNearbyPlayers(range);
-        final LocationTrack track = new LocationTrack(loc, audience.toArray(new Player[0]), notes);
-        audience.forEach(player -> {
-            UUID uuid = player.getUniqueId();
+        for (Player player : audience) {
             synchronized (PlayMidiCommand.m_tracks) {
-                BasePlayerTrack oldTrack = PlayMidiCommand.m_tracks.put(uuid, track);
-                if (oldTrack != null) {
-                    oldTrack.removePlayer(player);
-                    if (oldTrack.countPlayers() == 0) {
-                        m_player.removeTrack(oldTrack);
-                        if (oldTrack instanceof LocationTrack lt)
-                            JukeboxListener.activeJukebox.remove(lt.getLocation());
-                    }
-                }
+                BasePlayerTrack track = PlayMidiCommand.m_tracks.remove(player.getUniqueId());
+                if (track != null)
+                    m_player.removeTrack(track);
             }
-        });
-        m_player.playTrack(track);
+        }
 
         return true;
     }
@@ -127,7 +90,7 @@ public class PlayMidiHereCommand extends BaseCommand {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
         if (args.length == 1)
-            return getMIDIList(m_plugin, args[0]);
+            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         return null;
     }
 }

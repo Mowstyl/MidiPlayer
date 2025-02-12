@@ -54,8 +54,8 @@ public class LocationTrack extends BasePlayerTrack {
     private Location m_location;
     
     @Override
-    protected Location getLocation() {
-        return m_location;
+    public Location getLocation() {
+        return m_location.clone();
     }
     
     public LocationTrack(Location location, NoteFrame[] notes) {

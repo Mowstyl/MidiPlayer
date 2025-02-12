@@ -42,7 +42,7 @@ package org.primesoft.midiplayer.commands;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MidiPlayerMain;
 import org.primesoft.midiplayer.VersionChecker;
 import org.primesoft.midiplayer.configuration.ConfigProvider;
@@ -50,8 +50,6 @@ import org.primesoft.midiplayer.instruments.MapFileParser;
 
 import java.io.File;
 import java.util.logging.Level;
-
-import static org.primesoft.midiplayer.MidiPlayerMain.log;
 
 /**
  * Reload configuration command
@@ -61,44 +59,42 @@ public class ReloadCommand extends BaseCommand {
 
     private final MidiPlayerMain m_pluginMain;
 
-    public ReloadCommand(MidiPlayerMain pluginMain) {
+    public ReloadCommand(@NotNull MidiPlayerMain pluginMain) {
         m_pluginMain = pluginMain;
     }
 
     @Override
-    public boolean onCommand(CommandSender cs, Command cmnd, String name, String[] args) {
-        if (args != null && args.length > 0) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
+        if (args.length != 0)
             return false;
-        }
-
-        Player player = (cs instanceof Player) ? (Player) cs : null;
 
         m_pluginMain.reloadConfig();
-        ReloadConfig(player);
+        reloadConfig(sender);
         return true;
     }
 
-    public boolean ReloadConfig(Player player) {
+    public boolean reloadConfig(CommandSender player) {
         if (!ConfigProvider.load(m_pluginMain)) {
             MidiPlayerMain.say(player, "Error loading config");
             return false;
         }
 
         if (ConfigProvider.getCheckUpdate()) {
-            log(Level.INFO, VersionChecker.CheckVersion(m_pluginMain.getVersion()));
+            MidiPlayerMain.log(Level.INFO, VersionChecker.CheckVersion(m_pluginMain.getVersion()));
         }
         if (!ConfigProvider.isConfigUpdated()) {
-            log(Level.INFO, "Please update your config file!");
+            MidiPlayerMain.log(Level.INFO, "Please update your config file!");
         }
 
-        if (!ReloadInstrumentMap(player)) {
+        if (!reloadInstrumentMap(player)) {
             return false;
         }
+        m_pluginMain.getGiveDiscCommand().reloadDiscYML(player);
         MidiPlayerMain.say(player, "Config loaded");
         return true;
     }
 
-    private boolean ReloadInstrumentMap(Player player) {
+    private boolean reloadInstrumentMap(CommandSender player) {
         String instrumentName = ConfigProvider.getInstrumentMapFile();
         String drumName = ConfigProvider.getDrumMapFile();
         File instrumentFile = new File(ConfigProvider.getPluginFolder(), instrumentName);
