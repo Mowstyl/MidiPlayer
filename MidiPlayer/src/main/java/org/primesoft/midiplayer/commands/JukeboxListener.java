@@ -24,15 +24,15 @@ import org.primesoft.midiplayer.track.LocationTrack;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class JukeboxListener implements Listener {
 
     private MidiPlayerMain m_main;
-    protected static final Map<Location, LocationTrack> activeJukebox = new ConcurrentHashMap<>();
+    private final Map<Location, LocationTrack> activeJukebox = new HashMap<>();
     private NamespacedKey discKey;
 
     public JukeboxListener(@NotNull MidiPlayerMain main) {
@@ -80,20 +80,6 @@ public class JukeboxListener implements Listener {
                     MidiParser.loadFile(new File(m_main.getDataFolder(), fileName)).getNotes());
             activeJukebox.put(boxLocation, locationTrack);
             MusicPlayer m_player = m_main.getMusicPlayer();
-            Arrays.stream(audience).forEach(p -> {
-                synchronized (PlayMidiCommand.m_tracks) {
-                    BasePlayerTrack oldTrack = PlayMidiCommand.m_tracks.put(p.getUniqueId(), locationTrack);
-                    if (oldTrack != null) {
-                        oldTrack.removePlayer(p);
-                        if (oldTrack.countPlayers() == 0) {
-                            m_player.removeTrack(oldTrack);
-                            if (oldTrack instanceof LocationTrack lt)
-                                activeJukebox.remove(lt.getLocation());
-                        }
-                    }
-                }
-            });
-
             m_player.playTrack(locationTrack);
 
             Audience targets = Audience.audience(audience);  // 250^2 = 62 500

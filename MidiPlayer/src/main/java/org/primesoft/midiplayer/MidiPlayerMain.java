@@ -43,7 +43,6 @@ package org.primesoft.midiplayer;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -210,9 +209,6 @@ public class MidiPlayerMain extends JavaPlugin {
 
         try {
             MIDISuggestionProvider songSuggestion = new MIDISuggestionProvider(this);
-            RequiredArgumentBuilder<CommandSourceStack, String> songArgument = Commands
-                    .argument("song", StringArgumentType.string())
-                    .suggests(songSuggestion);
 
             LiteralCommandNode<CommandSourceStack> commandReload = Commands.literal("mpreload")
                     .requires(sender -> sender.getSender().hasPermission("midiplayer.admin.reload"))
@@ -221,7 +217,8 @@ public class MidiPlayerMain extends JavaPlugin {
 
             LiteralCommandNode<CommandSourceStack> commandPlayGlobal = Commands.literal("playglobalmidi")
                     .requires(sender -> sender.getSender().hasPermission("midiplayer.playglobal"))
-                    .then(songArgument
+                    .then(Commands.argument("song", StringArgumentType.string())
+                            .suggests(songSuggestion)
                             .executes(playGlobalCommandHandler)
                             .then(Commands.argument("loop", BoolArgumentType.bool())
                                     .executes(playGlobalCommandHandler)))
@@ -234,7 +231,8 @@ public class MidiPlayerMain extends JavaPlugin {
 
             LiteralCommandNode<CommandSourceStack> commandPlay = Commands.literal("playmidi")
                     .requires(sender -> sender.getSender().hasPermission("midiplayer.play"))
-                    .then(songArgument
+                    .then(Commands.argument("song", StringArgumentType.string())
+                            .suggests(songSuggestion)
                             .executes(playCommandHandler)
                             .then(Commands.argument("targets", ArgumentTypes.players())
                                     .executes(playCommandHandler)))
@@ -249,7 +247,8 @@ public class MidiPlayerMain extends JavaPlugin {
 
             LiteralCommandNode<CommandSourceStack> commandPlayHere = Commands.literal("playmidihere")
                     .requires(sender -> sender.getSender().hasPermission("midiplayer.playrange"))
-                    .then(songArgument
+                    .then(Commands.argument("song", StringArgumentType.string())
+                            .suggests(songSuggestion)
                             .executes(playHereCommandHandler)
                             .then(Commands.argument("range", DoubleArgumentType.doubleArg(0))
                                     .executes(playHereCommandHandler)))
@@ -257,7 +256,8 @@ public class MidiPlayerMain extends JavaPlugin {
 
             LiteralCommandNode<CommandSourceStack> commandGiveDisc = Commands.literal("givedisc")
                     .requires(sender -> sender.getSender().hasPermission("midiplayer.give"))
-                    .then(songArgument
+                    .then(Commands.argument("song", StringArgumentType.string())
+                            .suggests(songSuggestion)
                             .executes(giveDiscCommand)
                             .then(Commands.argument("targets", ArgumentTypes.players())
                                     .executes(giveDiscCommand)))

@@ -99,11 +99,8 @@ public class PlayMidiHereCommand implements Command<CommandSourceStack> {
                 BasePlayerTrack oldTrack = PlayMidiCommand.m_tracks.put(uuid, track);
                 if (oldTrack != null) {
                     oldTrack.removePlayer(player);
-                    if (oldTrack.countPlayers() == 0) {
+                    if (oldTrack.countPlayers() == 0)
                         m_player.removeTrack(oldTrack);
-                        if (oldTrack instanceof LocationTrack lt)
-                            JukeboxListener.activeJukebox.remove(lt.getLocation());
-                    }
                 }
             }
         });

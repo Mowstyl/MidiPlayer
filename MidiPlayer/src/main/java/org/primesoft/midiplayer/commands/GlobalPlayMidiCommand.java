@@ -85,7 +85,6 @@ public class GlobalPlayMidiCommand implements Command<CommandSourceStack> {
         synchronized (PlayMidiCommand.m_tracks) {
             PlayMidiCommand.m_tracks.values().forEach(m_player::removeTrack);
             PlayMidiCommand.m_tracks.clear();
-            JukeboxListener.activeJukebox.clear();
             m_currentTrack.getPlayers()
                     .forEach(p -> PlayMidiCommand.m_tracks.put(p.getUniqueId(), m_currentTrack));
         }
