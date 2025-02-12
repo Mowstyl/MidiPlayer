@@ -2,7 +2,10 @@ package org.primesoft.midiplayer.listeners;
 
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameEvent;
+import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Jukebox;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

@@ -44,8 +44,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 
-import java.util.Collection;
-
 /**
  * Global music track - music played by this track type
  * is heard all over the server
