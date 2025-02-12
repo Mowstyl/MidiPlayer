@@ -82,13 +82,13 @@ public class PlayMidiHereCommand implements Command<CommandSourceStack> {
             return 0;
         }
 
-        double range = BaseCommand.getArgumentOrDefault(ctx, "range", Double.class, -1D);
+        double range = CommandUtils.getArgumentOrDefault(ctx, "range", Double.class, -1D);
 
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, ctx, "song");
+        NoteTrack noteTrack = CommandUtils.getNoteTrack(m_plugin, ctx, "song");
         if (noteTrack == null)
             return 0;
         else if (noteTrack.isError())
-            return SINGLE_SUCCESS;
+            return 0;
 
         final NoteFrame[] notes = noteTrack.getNotes();
         Collection<Player> audience = range < 0 ? loc.getWorld().getPlayers() : loc.getNearbyPlayers(range);

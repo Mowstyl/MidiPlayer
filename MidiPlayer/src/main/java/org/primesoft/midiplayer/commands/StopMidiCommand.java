@@ -67,9 +67,13 @@ public class StopMidiCommand implements com.mojang.brigadier.Command<CommandSour
 
     @Override
     public int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        List<Player> audience = BaseCommand.getPlayers(ctx, "targets", true);
+        List<Player> audience = CommandUtils.getPlayers(ctx, "targets", true);
         if (audience == null)
             return 0;
+        if (audience.isEmpty()) {
+            ctx.getSource().getSender().sendRichMessage("<red>No player was found");
+            return 0;
+        }
 
         for (Player player : audience) {
             synchronized (PlayMidiCommand.m_tracks) {

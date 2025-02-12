@@ -44,10 +44,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Contract;
@@ -57,25 +53,10 @@ import org.primesoft.midiplayer.midiparser.MidiParser;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- *
- * @author prime
- */
-public abstract class BaseCommand implements CommandExecutor, TabCompleter {
-
-    @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        return true;
-    }
-    
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        return new ArrayList<>();
-    }
+public class CommandUtils {
 
     @Contract("_, _, _, !null -> !null")
     public static <T> @Nullable T getArgumentOrDefault(CommandContext<CommandSourceStack> ctx, String name, Class<T> clazz, T def) {
@@ -95,7 +76,7 @@ public abstract class BaseCommand implements CommandExecutor, TabCompleter {
 
     public static @Nullable List<Player> getPlayers(CommandContext<CommandSourceStack> ctx, String argument, boolean defaultToSelf) throws CommandSyntaxException {
         List<Player> audience;
-        PlayerSelectorArgumentResolver selector = BaseCommand.getArgumentOrDefault(ctx, argument, PlayerSelectorArgumentResolver.class, null);
+        PlayerSelectorArgumentResolver selector = CommandUtils.getArgumentOrDefault(ctx, argument, PlayerSelectorArgumentResolver.class, null);
         if (selector == null) {
             if (defaultToSelf && ctx.getSource().getExecutor() instanceof Player player) {
                 audience = List.of(player);

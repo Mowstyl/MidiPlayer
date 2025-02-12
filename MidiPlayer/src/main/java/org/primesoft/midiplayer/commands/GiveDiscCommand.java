@@ -70,13 +70,15 @@ public class GiveDiscCommand implements Command<CommandSourceStack> {
 
     @Override
     public int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        List<Player> audience = BaseCommand.getPlayers(ctx, "targets", true);
+        List<Player> audience = CommandUtils.getPlayers(ctx, "targets", true);
         if (audience == null)
             return 0;
-        if (audience.isEmpty())
-            return SINGLE_SUCCESS;
+        if (audience.isEmpty()) {
+            ctx.getSource().getSender().sendRichMessage("<red>No player was found");
+            return 0;
+        }
 
-        String midi = BaseCommand.getTrackName(m_plugin, ctx, "song");
+        String midi = CommandUtils.getTrackName(m_plugin, ctx, "song");
         if (midi == null) {
             return 0;
         }

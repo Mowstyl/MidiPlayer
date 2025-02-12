@@ -72,13 +72,13 @@ public class GlobalPlayMidiCommand implements Command<CommandSourceStack> {
     public int run(CommandContext<CommandSourceStack> ctx) {
         m_player.removeTrack(m_currentTrack);
 
-        boolean loop = BaseCommand.getArgumentOrDefault(ctx, "loop", Boolean.class, false);
+        boolean loop = CommandUtils.getArgumentOrDefault(ctx, "loop", Boolean.class, false);
 
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, ctx, "song");
+        NoteTrack noteTrack = CommandUtils.getNoteTrack(m_plugin, ctx, "song");
         if (noteTrack == null)
             return 0;
         else if (noteTrack.isError())
-            return SINGLE_SUCCESS;
+            return 0;
 
         final NoteFrame[] notes = noteTrack.getNotes();
         m_currentTrack = new GlobalTrack(m_plugin, notes, loop);

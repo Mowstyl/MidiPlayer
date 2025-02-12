@@ -54,7 +54,6 @@ import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
 import org.primesoft.midiplayer.track.BasePlayerTrack;
-import org.primesoft.midiplayer.track.LocationTrack;
 import org.primesoft.midiplayer.track.PlayerTrack;
 
 import java.util.*;
@@ -88,17 +87,19 @@ public class PlayMidiCommand implements Command<CommandSourceStack>, Listener {
 
     @Override
     public int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        List<Player> audience = BaseCommand.getPlayers(ctx, "targets", true);
+        List<Player> audience = CommandUtils.getPlayers(ctx, "targets", true);
         if (audience == null)
             return 0;
-        if (audience.isEmpty())
-            return SINGLE_SUCCESS;
+        if (audience.isEmpty()) {
+            ctx.getSource().getSender().sendRichMessage("<red>No player was found");
+            return 0;
+        }
 
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, ctx, "song");
+        NoteTrack noteTrack = CommandUtils.getNoteTrack(m_plugin, ctx, "song");
         if (noteTrack == null)
             return 0;
         else if (noteTrack.isError())
-            return SINGLE_SUCCESS;
+            return 0;
 
         final NoteFrame[] notes = noteTrack.getNotes();
 
