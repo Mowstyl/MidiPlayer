@@ -18,6 +18,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MidiPlayerMain;
+import org.primesoft.midiplayer.utils.CommandUtils;
 
 import java.io.File;
 import java.io.IOException;

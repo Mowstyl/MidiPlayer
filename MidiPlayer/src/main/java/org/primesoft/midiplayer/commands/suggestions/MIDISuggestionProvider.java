@@ -1,4 +1,4 @@
-package org.primesoft.midiplayer.commands;
+package org.primesoft.midiplayer.commands.suggestions;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;

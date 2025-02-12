@@ -1,4 +1,4 @@
-package org.primesoft.midiplayer.commands;
+package org.primesoft.midiplayer.listeners;
 
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -18,12 +18,11 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MidiPlayerMain;
 import org.primesoft.midiplayer.MusicPlayer;
+import org.primesoft.midiplayer.commands.GiveDiscCommand;
 import org.primesoft.midiplayer.midiparser.MidiParser;
-import org.primesoft.midiplayer.track.BasePlayerTrack;
 import org.primesoft.midiplayer.track.LocationTrack;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -105,17 +104,6 @@ public class JukeboxListener implements Listener {
                 sched.runTaskLater(m_main, () -> targets.sendActionBar(MiniMessage.miniMessage()
                         .deserialize(String.format(Locale.US, transition, finalTick / 32F) + text + "</transition>")), 12 + tick);
             }
-            /*
-            for (int tick = 0; tick <= 28; tick++) {
-                int finalTick = tick;
-                sched.runTaskLater(m_main, () -> {
-                    String mess = String.format("<color:#%02x%s>", (int) (0xFF * (28 - finalTick) / 28F), step5);
-                        targets.sendActionBar(MiniMessage.miniMessage()
-                                .deserialize(mess + text));
-                    m_main.getLogger().info(mess);
-                }, 32 + tick);
-            }
-            */
         }
     }
 }

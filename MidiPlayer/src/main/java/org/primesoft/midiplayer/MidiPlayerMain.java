@@ -56,6 +56,8 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.primesoft.midiplayer.commands.*;
+import org.primesoft.midiplayer.commands.suggestions.MIDISuggestionProvider;
+import org.primesoft.midiplayer.listeners.JukeboxListener;
 
 import java.util.List;
 import java.util.logging.Level;

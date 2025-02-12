@@ -52,6 +52,7 @@ import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
 import org.primesoft.midiplayer.track.BasePlayerTrack;
 import org.primesoft.midiplayer.track.LocationTrack;
+import org.primesoft.midiplayer.utils.CommandUtils;
 
 import java.util.*;
 
