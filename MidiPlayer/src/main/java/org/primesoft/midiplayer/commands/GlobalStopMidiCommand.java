@@ -40,8 +40,8 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
+import com.mojang.brigadier.context.CommandContext;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MusicPlayer;
@@ -52,7 +52,7 @@ import org.primesoft.midiplayer.track.GlobalTrack;
  * Play global midi music command
  * @author SBPrime
  */
-public class GlobalStopMidiCommand extends BaseCommand {
+public class GlobalStopMidiCommand implements com.mojang.brigadier.Command<CommandSourceStack> {
 
     private final MusicPlayer m_player;
     private final JavaPlugin m_plugin;
@@ -63,9 +63,7 @@ public class GlobalStopMidiCommand extends BaseCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length != 0)
-            return false;
+    public int run(CommandContext<CommandSourceStack> ctx) {
         GlobalTrack track = GlobalPlayMidiCommand.getGlobalTrack();
         if (track != null) {
             track.getPlayers().forEach(p -> {
@@ -75,8 +73,11 @@ public class GlobalStopMidiCommand extends BaseCommand {
             });
         }
         boolean res = m_player.removeTrack(track);
-        if (!res)
-            sender.sendMessage("There was no global track being played");
-        return true;
+        if (res)
+            ctx.getSource().getSender().sendRichMessage("The music has stopped!");
+        else
+            ctx.getSource().getSender().sendRichMessage("<red>There was no global track being played");
+
+        return SINGLE_SUCCESS;
     }
 }

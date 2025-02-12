@@ -40,14 +40,13 @@
  */
 package org.primesoft.midiplayer.commands;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.context.CommandContext;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Location;
-import org.bukkit.command.BlockCommandSender;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
@@ -61,7 +60,7 @@ import java.util.*;
  * Play midi command
  * @author SBPrime
  */
-public class PlayMidiHereCommand extends BaseCommand {
+public class PlayMidiHereCommand implements Command<CommandSourceStack> {
 
     private final MusicPlayer m_player;
     private final JavaPlugin m_plugin;
@@ -72,35 +71,24 @@ public class PlayMidiHereCommand extends BaseCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length < 1 || args.length > 2)
-            return false;
-
+    public int run(CommandContext<CommandSourceStack> ctx) {
         Location loc;
-        if (sender instanceof Player player)
+        if (ctx.getSource().getExecutor() instanceof Player player)
             loc = player.getLocation();
-        else if (sender instanceof BlockCommandSender cBlock)
-            loc = cBlock.getBlock().getLocation();
-        else {
-            sender.sendMessage("This command has to be run by an entity or a block");
-            return true;
+        else
+            loc = ctx.getSource().getLocation();
+        if (loc == null) {
+            ctx.getSource().getSender().sendRichMessage("<red>This command has to be run by an entity or a block");
+            return 0;
         }
 
-        double range = -1;
-        if (args.length > 1) {
-            try {
-                range = Double.parseDouble(args[1]);
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(args[1] + " is not a number!");
-                return false;
-            }
-        }
+        double range = BaseCommand.getArgumentOrDefault(ctx, "range", Double.class, -1D);
 
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, sender, args, 0);
+        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, ctx, "song");
         if (noteTrack == null)
-            return false;
+            return 0;
         else if (noteTrack.isError())
-            return true;
+            return SINGLE_SUCCESS;
 
         final NoteFrame[] notes = noteTrack.getNotes();
         Collection<Player> audience = range < 0 ? loc.getWorld().getPlayers() : loc.getNearbyPlayers(range);
@@ -121,13 +109,6 @@ public class PlayMidiHereCommand extends BaseCommand {
         });
         m_player.playTrack(track);
 
-        return true;
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length == 1)
-            return getMIDIList(m_plugin, args[0]);
-        return null;
+        return SINGLE_SUCCESS;
     }
 }

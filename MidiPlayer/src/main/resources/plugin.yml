@@ -4,39 +4,6 @@ version: ${project.version}
 authors: [SBPrime]
 api-version: 1.19
 description: ${project.description}
-commands:
-  mpreload:
-    description: 'Reload the config'
-    usage: "Usage: /<command>"
-    permission: midiplayer.admin.reload
-  playmidi:
-    description: 'Play MIDI file for player'
-    usage: "Usage: /<command> <song> [player=self]"
-    permission: midiplayer.play
-    aliases: play
-  stopmidi:
-    description: 'Stop track for player'
-    usage: "Usage: /<command> [player=self]"
-    permission: midiplayer.play
-  givedisc:
-    description: 'Give a MIDI disc to the specified player'
-    usage: "Usage: /<command> <song> [player=self]"
-    permission: midiplayer.play
-  playmidihere:
-    description: 'Play MIDI file for players around location / world'
-    usage: "Usage: /<command> <song> [range=-1 (world)]"
-    permission: midiplayer.play
-    aliases: playhere
-  playglobalmidi:
-    description: 'Play MIDI file for all players on the server'
-    usage: "Usage: /<command> <song> [loop=true]"
-    permission: midiplayer.playglobal
-    aliases: gplay
-  stopglobalmidi:
-    description: 'Stop track being played to all players on the server'
-    usage: "Usage: /<command>"
-    permission: midiplayer.playglobal
-    aliases: gstop
 permissions:
   musicplayer.*:
     description: Grants access to all MidiPlayer permissions

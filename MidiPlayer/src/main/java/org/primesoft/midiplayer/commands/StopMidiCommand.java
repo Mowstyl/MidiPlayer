@@ -40,14 +40,12 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.track.BasePlayerTrack;
 
@@ -57,24 +55,21 @@ import java.util.List;
  * Play midi command
  * @author SBPrime
  */
-public class StopMidiCommand extends BaseCommand implements Listener {
+public class StopMidiCommand implements com.mojang.brigadier.Command<CommandSourceStack> {
 
     private final MusicPlayer m_player;
     private final JavaPlugin m_plugin;
 
-    public StopMidiCommand(JavaPlugin plugin, MusicPlayer player) {
+    public StopMidiCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
         m_plugin = plugin;
         m_player = player;
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length > 1)
-            return false;
-
-        List<Player> audience = BaseCommand.getPlayers(sender, args, 0, true);
-        if (audience == null || audience.isEmpty())
-            return true;
+    public int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        List<Player> audience = BaseCommand.getPlayers(ctx, "targets", true);
+        if (audience == null)
+            return 0;
 
         for (Player player : audience) {
             synchronized (PlayMidiCommand.m_tracks) {
@@ -84,13 +79,6 @@ public class StopMidiCommand extends BaseCommand implements Listener {
             }
         }
 
-        return true;
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length == 1)
-            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
-        return null;
+        return SINGLE_SUCCESS;
     }
 }

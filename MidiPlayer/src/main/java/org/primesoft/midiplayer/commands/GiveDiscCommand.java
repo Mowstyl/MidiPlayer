@@ -1,10 +1,12 @@
 package org.primesoft.midiplayer.commands;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -15,7 +17,6 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MidiPlayerMain;
 
 import java.io.File;
@@ -24,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class GiveDiscCommand extends BaseCommand {
+public class GiveDiscCommand implements Command<CommandSourceStack> {
     public static final String SONG_KEY = "SONG_NAME";
     public static final String DEFAULT_NAME = "MIDI Disc";
     public static final String DEFAULT_RARITY = ItemRarity.COMMON.name();
@@ -68,17 +69,16 @@ public class GiveDiscCommand extends BaseCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length < 1 || args.length > 2)
-            return false;
+    public int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        List<Player> audience = BaseCommand.getPlayers(ctx, "targets", true);
+        if (audience == null)
+            return 0;
+        if (audience.isEmpty())
+            return SINGLE_SUCCESS;
 
-        List<Player> audience = BaseCommand.getPlayers(sender, args, 1, true);
-        if (audience == null || audience.isEmpty())
-            return true;
-
-        String midi = BaseCommand.getTrackName(m_plugin, sender, args, 0);
+        String midi = BaseCommand.getTrackName(m_plugin, ctx, "song");
         if (midi == null) {
-            return true;
+            return 0;
         }
 
         Material discMaterial = Material.MUSIC_DISC_BLOCKS;
@@ -98,7 +98,7 @@ public class GiveDiscCommand extends BaseCommand {
         discMaterial = Material.matchMaterial(discYML.getString(songName + ".material", discMaterial.name()));
         if (discMaterial == null) {
             discMaterial = Material.MUSIC_DISC_BLOCKS;
-            sender.sendMessage("[WARNING] Material not working");
+            ctx.getSource().getSender().sendRichMessage("<red>[WARNING] Material not working");
         }
         displayName = discYML.getString(songName + ".displayname", DEFAULT_NAME);
         lore = discYML.getStringList(songName + ".lore");
@@ -110,12 +110,12 @@ public class GiveDiscCommand extends BaseCommand {
             meta.setRarity(rarity);
             meta.setLore(lore);
             PersistentDataContainer data = meta.getPersistentDataContainer();
-            data.set(discKey, PersistentDataType.STRING, args[0]);
+            data.set(discKey, PersistentDataType.STRING, midi);
         });
         for (Player player : audience)
             player.getInventory().addItem(disc.clone());
-        sender.sendMessage("Giving Midi Music disc \"" + songName + "\".");
-        return true;
+        ctx.getSource().getSender().sendMessage("Giving Midi Music disc \"" + songName + "\".");
+        return SINGLE_SUCCESS;
     }
 
     private static void initDiscData(@NotNull FileConfiguration discYML, @NotNull String songName) {
@@ -145,14 +145,5 @@ public class GiveDiscCommand extends BaseCommand {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length == 1)
-            return BaseCommand.getMIDIList(m_plugin, args[0]);
-        else if (args.length == 2)
-            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
-        return null;
     }
 }

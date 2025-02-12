@@ -40,14 +40,17 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.Bukkit;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.midiparser.MidiParser;
@@ -55,7 +58,6 @@ import org.primesoft.midiplayer.midiparser.NoteTrack;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 
@@ -75,94 +77,74 @@ public abstract class BaseCommand implements CommandExecutor, TabCompleter {
         return new ArrayList<>();
     }
 
-    public static @Nullable List<Player> getPlayers(@NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId, boolean acceptSender) {
-        List<Entity> entities = getEntities(sender, args, argId, acceptSender);
-        if (entities == null)
-            return null;
-        return entities.stream()
-                .filter(e -> e instanceof Player)
-                .map(e -> (Player) e)
-                .toList();
+    @Contract("_, _, _, !null -> !null")
+    public static <T> @Nullable T getArgumentOrDefault(CommandContext<CommandSourceStack> ctx, String name, Class<T> clazz, T def) {
+        T arg = def;
+        try {
+            arg = ctx.getArgument(name, clazz);
+        }
+        catch (IllegalArgumentException ex) {
+            if (!ex.getMessage().equals("No such argument '" + name + "' exists on this command")) {
+                ctx.getSource().getSender().sendRichMessage("<red>There was an error while running this command");
+                ctx.getSource().getSender().sendRichMessage("<red>Please check the console for details");
+                throw ex;
+            }
+        }
+        return arg;
     }
 
-    public static @Nullable List<Entity> getEntities(@NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId, boolean acceptSender) {
-        List<Entity> audience = null;
-        boolean hasTargetArg = args.length > argId;
-        if (hasTargetArg) {
-            Player target = Bukkit.getPlayer(args[argId]);
-            if (target == null) {
-                try {
-                    audience = Bukkit.selectEntities(sender, args[argId]);
-                }
-                catch (IllegalArgumentException ex) {
-                    sender.sendMessage("Unknown player: " + args[argId]);
-                }
+    public static @Nullable List<Player> getPlayers(CommandContext<CommandSourceStack> ctx, String argument, boolean defaultToSelf) throws CommandSyntaxException {
+        List<Player> audience;
+        PlayerSelectorArgumentResolver selector = BaseCommand.getArgumentOrDefault(ctx, argument, PlayerSelectorArgumentResolver.class, null);
+        if (selector == null) {
+            if (defaultToSelf && ctx.getSource().getExecutor() instanceof Player player) {
+                audience = List.of(player);
             }
             else {
-                audience = List.of(target);
+                ctx.getSource().getSender().sendRichMessage("<red>You have to specify a player if the command is not run by one");
+                return null;
             }
         }
-        else if (acceptSender) {
-            if (sender instanceof Player player)
-                audience = List.of(player);
-            else
-                sender.sendMessage("You must provide a target player if you are not one");
-        }
         else {
-            sender.sendMessage("You must provide a target player if you are not one");
+            audience = selector.resolve(ctx.getSource());
         }
         return audience;
     }
 
-    public static @Nullable String getTrackName(@NotNull JavaPlugin plugin, @NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId) {
-        String fileName = args.length > argId ? args[argId] : null;
+    public static @Nullable String getTrackName(@NotNull JavaPlugin plugin, CommandContext<CommandSourceStack> ctx, String argument) {
+        String fileName = ctx.getArgument(argument, String.class);
         if (fileName == null) {
-            sender.sendMessage("No MIDI track specified");
+            ctx.getSource().getSender().sendRichMessage("<red>No MIDI track specified");
             return null;
         }
 
         if (!new File(plugin.getDataFolder(), fileName).exists()) {
-            sender.sendMessage("The specified file does not exist");
+            ctx.getSource().getSender().sendRichMessage("<red>The specified file does not exist");
             return null;
         }
         else if (!fileName.endsWith(".mid")) {
-            sender.sendMessage("MIDI files must end with .mid");
+            ctx.getSource().getSender().sendRichMessage("<red>MIDI files must end with .mid");
             return null;
         }
 
         return fileName;
     }
 
-    public static @Nullable NoteTrack getNoteTrack(@NotNull JavaPlugin plugin, @NotNull CommandSender sender, @NotNull String @NotNull [] args, int argId) {
-        String fileName = args.length > argId ? args[argId] : null;
+    public static @Nullable NoteTrack getNoteTrack(@NotNull JavaPlugin plugin, CommandContext<CommandSourceStack> ctx, String argument) {
+        String fileName = ctx.getArgument(argument, String.class);
         if (fileName == null) {
-            sender.sendMessage("No MIDI track specified");
+            ctx.getSource().getSender().sendRichMessage("<red>No MIDI track specified");
             return null;
         }
 
         NoteTrack noteTrack = MidiParser.loadFile(new File(plugin.getDataFolder(), fileName));
         if (noteTrack == null) {
-            sender.sendMessage("Error loading MIDI track");
+            ctx.getSource().getSender().sendRichMessage("<red>Error loading MIDI track");
             return null;
         } else if (noteTrack.isError()) {
-            sender.sendMessage("Error loading MIDI track: " + noteTrack.getMessage());
+            ctx.getSource().getSender().sendRichMessage("<red>Error loading MIDI track: " + noteTrack.getMessage());
         }
 
         return noteTrack;
-    }
-
-    public static @NotNull List<String> getMIDIList(@NotNull JavaPlugin plugin, @NotNull String nameStart) {
-        List<String> midi = new LinkedList<>();
-        File[] files = plugin.getDataFolder().listFiles();
-        if (files == null)
-            return midi;
-
-        nameStart = nameStart.toLowerCase();
-        for (File f : files) {
-            String fileName = f.getName();
-            if (fileName.endsWith(".mid") && fileName.toLowerCase().startsWith(nameStart))
-                midi.add(f.getName());
-        }
-        return midi;
     }
 }

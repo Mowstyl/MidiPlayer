@@ -40,7 +40,9 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.command.Command;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.context.CommandContext;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MidiPlayerMain;
@@ -55,7 +57,7 @@ import java.util.logging.Level;
  * Reload configuration command
  * @author SBPrime
  */
-public class ReloadCommand extends BaseCommand {
+public class ReloadCommand implements Command<CommandSourceStack> {
 
     private final MidiPlayerMain m_pluginMain;
 
@@ -64,13 +66,10 @@ public class ReloadCommand extends BaseCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length != 0)
-            return false;
-
+    public int run(CommandContext<CommandSourceStack> ctx) {
         m_pluginMain.reloadConfig();
-        reloadConfig(sender);
-        return true;
+        reloadConfig(ctx.getSource().getSender());
+        return SINGLE_SUCCESS;
     }
 
     public boolean reloadConfig(CommandSender player) {

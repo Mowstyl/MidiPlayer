@@ -40,16 +40,16 @@
  */
 package org.primesoft.midiplayer.commands;
 
-import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
@@ -64,7 +64,7 @@ import java.util.*;
  * Play midi command
  * @author SBPrime
  */
-public class PlayMidiCommand extends BaseCommand implements Listener {
+public class PlayMidiCommand implements Command<CommandSourceStack>, Listener {
 
     private final MusicPlayer m_player;
     protected static final Map<UUID, BasePlayerTrack> m_tracks = new HashMap<>();
@@ -87,19 +87,18 @@ public class PlayMidiCommand extends BaseCommand implements Listener {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
-        if (args.length < 1 || args.length > 2)
-            return false;
+    public int run(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        List<Player> audience = BaseCommand.getPlayers(ctx, "targets", true);
+        if (audience == null)
+            return 0;
+        if (audience.isEmpty())
+            return SINGLE_SUCCESS;
 
-        List<Player> audience = BaseCommand.getPlayers(sender, args, 1, true);
-        if (audience == null || audience.isEmpty())
-            return true;
-
-        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, sender, args, 0);
+        NoteTrack noteTrack = BaseCommand.getNoteTrack(m_plugin, ctx, "song");
         if (noteTrack == null)
-            return false;
+            return 0;
         else if (noteTrack.isError())
-            return true;
+            return SINGLE_SUCCESS;
 
         final NoteFrame[] notes = noteTrack.getNotes();
 
@@ -120,15 +119,6 @@ public class PlayMidiCommand extends BaseCommand implements Listener {
         });
         m_player.playTrack(track);
 
-        return true;
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length == 1)
-            return getMIDIList(m_plugin, args[0]);
-        else if (args.length == 2)
-            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
-        return null;
+        return SINGLE_SUCCESS;
     }
 }
