@@ -40,6 +40,7 @@
  */
 package org.primesoft.midiplayer;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -58,6 +59,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.primesoft.midiplayer.commands.*;
 import org.primesoft.midiplayer.commands.suggestions.MIDISuggestionProvider;
 import org.primesoft.midiplayer.listeners.JukeboxListener;
+import org.primesoft.midiplayer.utils.CommandUtils;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -203,6 +205,8 @@ public class MidiPlayerMain extends JavaPlugin {
         StopMidiCommand stopCommandHandler = new StopMidiCommand(this, m_musicPlayer);
         giveDiscCommand = new GiveDiscCommand(this);
         PlayMidiHereCommand playHereCommandHandler = new PlayMidiHereCommand(this, m_musicPlayer);
+        PlayMidiLocationCommand playLocationCommandHandler = new PlayMidiLocationCommand(this, m_musicPlayer);
+        StopFloatingMidiCommand stopFloatingCommandHandler = new StopFloatingMidiCommand(this, m_musicPlayer);
         
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents( playCommandHandler, this);
@@ -256,6 +260,23 @@ public class MidiPlayerMain extends JavaPlugin {
                                     .executes(playHereCommandHandler)))
                     .build();
 
+            LiteralCommandNode<CommandSourceStack> commandPlayLocation = Commands.literal("playlocation")
+                    .requires(sender -> sender.getSender().hasPermission("midiplayer.playrange"))
+                    .then(Commands.argument("song", StringArgumentType.string())
+                            .suggests(songSuggestion)
+                            .then(Commands.argument("location", ArgumentTypes.blockPosition())
+                                    .executes(playLocationCommandHandler)
+                                    .then(Commands.argument("range", DoubleArgumentType.doubleArg(0))
+                                            .executes(playLocationCommandHandler))))
+                    .build();
+
+            LiteralCommandNode<CommandSourceStack> commandStopFloats = Commands.literal("stopfloats")
+                    .requires(sender -> sender.getSender().hasPermission("midiplayer.playrange"))
+                    .executes(stopFloatingCommandHandler)
+                    .then(Commands.argument("also_jukeboxes", BoolArgumentType.bool())
+                            .executes(stopFloatingCommandHandler))
+                    .build();
+
             LiteralCommandNode<CommandSourceStack> commandGiveDisc = Commands.literal("givedisc")
                     .requires(sender -> sender.getSender().hasPermission("midiplayer.give"))
                     .then(Commands.argument("song", StringArgumentType.string())
@@ -265,14 +286,26 @@ public class MidiPlayerMain extends JavaPlugin {
                                     .executes(giveDiscCommand)))
                     .build();
 
+            LiteralCommandNode<CommandSourceStack> commandStopAll = Commands.literal("stopallmidi")
+                    .requires(sender -> sender.getSender().hasPermission("midiplayer.playglobal"))
+                    .executes(ctx -> {
+                        CommandUtils.stopAllPlayerTracks(m_musicPlayer);
+                        CommandUtils.stopAllJukeboxes(m_musicPlayer, false);
+                        return Command.SINGLE_SUCCESS;
+                    })
+                    .build();
+
             this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
                 commands.registrar().register(commandReload, "Reloads all config files");
                 commands.registrar().register(commandPlayGlobal, "Play MIDI file for all players on the server", List.of("gplay"));
                 commands.registrar().register(commandStopGlobal, "Stop track being played globally", List.of("gstop"));
                 commands.registrar().register(commandPlay, "Play MIDI file for a player (defaults to self)", List.of("play"));
                 commands.registrar().register(commandStop, "Stop track for player (defaults to self)");
-                commands.registrar().register(commandPlayHere, "Play MIDI file for players around location (defaults to current world)", List.of("playhere"));
+                commands.registrar().register(commandPlayHere, "Play MIDI file for players around sender (defaults to current world)", List.of("playhere"));
+                commands.registrar().register(commandPlayLocation, "Play MIDI file for players around location (defaults to current world)");
+                commands.registrar().register(commandStopFloats, "Stop MIDIs being played in certain locations (defaults to not include jukeboxes)", List.of("stopfloatingmidis"));
                 commands.registrar().register(commandGiveDisc, "Give a MIDI disc to the specified player (defaults to self)");
+                commands.registrar().register(commandStopAll, "Stop all MIDIs being played");
             });
         }
         catch (NullPointerException ex) {

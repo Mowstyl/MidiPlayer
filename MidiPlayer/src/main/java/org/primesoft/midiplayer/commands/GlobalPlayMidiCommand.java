@@ -45,7 +45,6 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
@@ -60,19 +59,15 @@ import org.primesoft.midiplayer.utils.CommandUtils;
 public class GlobalPlayMidiCommand implements Command<CommandSourceStack> {
 
     private final MusicPlayer m_player;
-    private static GlobalTrack m_currentTrack;
     private final JavaPlugin m_plugin;
 
     public GlobalPlayMidiCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
         m_plugin = plugin;
         m_player = player;
-        m_currentTrack = null;
     }
 
     @Override
     public int run(CommandContext<CommandSourceStack> ctx) {
-        m_player.removeTrack(m_currentTrack);
-
         boolean loop = CommandUtils.getArgumentOrDefault(ctx, "loop", Boolean.class, false);
 
         NoteTrack noteTrack = CommandUtils.getNoteTrack(m_plugin, ctx, "song");
@@ -82,19 +77,9 @@ public class GlobalPlayMidiCommand implements Command<CommandSourceStack> {
             return 0;
 
         final NoteFrame[] notes = noteTrack.getNotes();
-        m_currentTrack = new GlobalTrack(m_plugin, notes, loop);
-        synchronized (PlayMidiCommand.m_tracks) {
-            PlayMidiCommand.m_tracks.values().forEach(m_player::removeTrack);
-            PlayMidiCommand.m_tracks.clear();
-            m_currentTrack.getPlayers()
-                    .forEach(p -> PlayMidiCommand.m_tracks.put(p.getUniqueId(), m_currentTrack));
-        }
-        m_player.playTrack(m_currentTrack);
+        GlobalTrack newTrack = new GlobalTrack(m_plugin, notes, loop);
+        CommandUtils.addGlobalTrack(m_player, newTrack);
 
         return SINGLE_SUCCESS;
-    }
-
-    public static @Nullable GlobalTrack getGlobalTrack() {
-        return m_currentTrack;
     }
 }

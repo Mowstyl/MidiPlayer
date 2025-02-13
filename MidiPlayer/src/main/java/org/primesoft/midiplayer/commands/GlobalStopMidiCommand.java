@@ -45,7 +45,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MusicPlayer;
-import org.primesoft.midiplayer.track.GlobalTrack;
+import org.primesoft.midiplayer.utils.CommandUtils;
 
 
 /**
@@ -64,15 +64,7 @@ public class GlobalStopMidiCommand implements com.mojang.brigadier.Command<Comma
 
     @Override
     public int run(CommandContext<CommandSourceStack> ctx) {
-        GlobalTrack track = GlobalPlayMidiCommand.getGlobalTrack();
-        if (track != null) {
-            track.getPlayers().forEach(p -> {
-                synchronized (PlayMidiCommand.m_tracks) {
-                    PlayMidiCommand.m_tracks.remove(p.getUniqueId());
-                }
-            });
-        }
-        boolean res = m_player.removeTrack(track);
+        boolean res = CommandUtils.stopGlobalTrack(m_player);
         if (res)
             ctx.getSource().getSender().sendRichMessage("The music has stopped!");
         else

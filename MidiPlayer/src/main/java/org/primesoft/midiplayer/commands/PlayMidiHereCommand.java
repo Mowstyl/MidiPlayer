@@ -48,14 +48,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MusicPlayer;
-import org.primesoft.midiplayer.midiparser.NoteFrame;
-import org.primesoft.midiplayer.midiparser.NoteTrack;
-import org.primesoft.midiplayer.track.BasePlayerTrack;
-import org.primesoft.midiplayer.track.LocationTrack;
-import org.primesoft.midiplayer.utils.CommandUtils;
-
-import java.util.Collection;
-import java.util.UUID;
 
 
 /**
@@ -79,35 +71,10 @@ public class PlayMidiHereCommand implements Command<CommandSourceStack> {
             loc = player.getLocation();
         else
             loc = ctx.getSource().getLocation();
-        if (loc == null) {
-            ctx.getSource().getSender().sendRichMessage("<red>This command has to be run by an entity or a block");
-            return 0;
-        }
+        loc = loc.toBlockLocation();
+        loc.setYaw(0F);
+        loc.setPitch(0F);
 
-        double range = CommandUtils.getArgumentOrDefault(ctx, "range", Double.class, -1D);
-
-        NoteTrack noteTrack = CommandUtils.getNoteTrack(m_plugin, ctx, "song");
-        if (noteTrack == null)
-            return 0;
-        else if (noteTrack.isError())
-            return 0;
-
-        final NoteFrame[] notes = noteTrack.getNotes();
-        Collection<Player> audience = range < 0 ? loc.getWorld().getPlayers() : loc.getNearbyPlayers(range);
-        final LocationTrack track = new LocationTrack(loc, audience.toArray(new Player[0]), notes);
-        audience.forEach(player -> {
-            UUID uuid = player.getUniqueId();
-            synchronized (PlayMidiCommand.m_tracks) {
-                BasePlayerTrack oldTrack = PlayMidiCommand.m_tracks.put(uuid, track);
-                if (oldTrack != null) {
-                    oldTrack.removePlayer(player);
-                    if (oldTrack.countPlayers() == 0)
-                        m_player.removeTrack(oldTrack);
-                }
-            }
-        });
-        m_player.playTrack(track);
-
-        return SINGLE_SUCCESS;
+        return PlayMidiLocationCommand.startFloat(m_plugin, m_player, loc, ctx);
     }
 }

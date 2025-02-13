@@ -20,21 +20,18 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MidiPlayerMain;
-import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.commands.GiveDiscCommand;
 import org.primesoft.midiplayer.midiparser.MidiParser;
 import org.primesoft.midiplayer.track.LocationTrack;
+import org.primesoft.midiplayer.utils.CommandUtils;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class JukeboxListener implements Listener {
 
     private MidiPlayerMain m_main;
-    private final Map<Location, LocationTrack> activeJukebox = new HashMap<>();
     private NamespacedKey discKey;
 
     public JukeboxListener(@NotNull MidiPlayerMain main) {
@@ -45,7 +42,7 @@ public class JukeboxListener implements Listener {
     @EventHandler
     public void onJukeboxBreak(BlockBreakEvent event){
         Location loc = event.getBlock().getLocation();
-        m_main.getMusicPlayer().removeTrack(activeJukebox.remove(loc));
+        CommandUtils.stopJukebox(m_main.getMusicPlayer(), loc);
     }
 
     @EventHandler
@@ -53,7 +50,7 @@ public class JukeboxListener implements Listener {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
             return;
         Location loc = event.getClickedBlock().getLocation();
-        m_main.getMusicPlayer().removeTrack(activeJukebox.remove(loc));
+        CommandUtils.stopJukebox(m_main.getMusicPlayer(), loc);
     }
 
     @EventHandler
@@ -73,6 +70,7 @@ public class JukeboxListener implements Listener {
                 return;
             jukebox.stopPlaying();
             Location boxLocation = event.getLocation();
+            m_main.getLogger().info("Jukeloc" + boxLocation.getX() + " " + boxLocation.getY() + " " + boxLocation.getZ());
             Player[] audience = boxLocation.getWorld().getPlayers().parallelStream()
                     .filter(p -> p.getLocation().distanceSquared(boxLocation) <= 62500)
                     .toArray(Player[]::new);
@@ -80,9 +78,7 @@ public class JukeboxListener implements Listener {
                     boxLocation,
                     audience,
                     MidiParser.loadFile(new File(m_main.getDataFolder(), fileName)).getNotes());
-            activeJukebox.put(boxLocation, locationTrack);
-            MusicPlayer m_player = m_main.getMusicPlayer();
-            m_player.playTrack(locationTrack);
+            CommandUtils.startJukebox(m_main.getMusicPlayer(), boxLocation, locationTrack);
 
             Audience targets = Audience.audience(audience);  // 250^2 = 62 500
 

@@ -44,19 +44,140 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.MidiParser;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
+import org.primesoft.midiplayer.track.BasePlayerTrack;
+import org.primesoft.midiplayer.track.GlobalTrack;
+import org.primesoft.midiplayer.track.LocationTrack;
 
 import java.io.File;
-import java.util.List;
+import java.util.*;
 
 
 public class CommandUtils {
+
+    private static final Map<UUID, BasePlayerTrack> playerTracks = new HashMap<>();
+    private static final Map<Location, LocationTrack> activeJukebox = new HashMap<>();
+    private static final List<GlobalTrack> m_currentTrack = new ArrayList<>(1);
+    static {
+        m_currentTrack.add(null);
+    }
+
+
+    public static void stopAllJukeboxes(@NotNull MusicPlayer musicPlayer, boolean onlyFloats) {
+        synchronized (activeJukebox) {
+            if (!onlyFloats) {
+                activeJukebox.values().forEach(musicPlayer::removeTrack);
+                activeJukebox.clear();
+            }
+            else {
+                Collection<Location> toDelete = new ArrayList<>(activeJukebox.size());
+                activeJukebox.entrySet().stream()
+                        .filter(e -> e.getKey().getBlock().getType() != Material.JUKEBOX)
+                        .forEach(e -> {
+                            toDelete.add(e.getKey());
+                            musicPlayer.removeTrack(e.getValue());
+                        });
+                toDelete.forEach(activeJukebox::remove);
+            }
+        }
+    }
+
+    public static void stopAllPlayerTracks(@NotNull MusicPlayer musicPlayer) {
+        synchronized (playerTracks) {
+            playerTracks.values().forEach(musicPlayer::removeTrack);
+            playerTracks.clear();
+        }
+    }
+
+    public static void addGlobalTrack(@NotNull MusicPlayer musicPlayer, @Nullable GlobalTrack track) {
+        Collection<? extends Player> audience = track.getPlayers();
+        synchronized (playerTracks) {
+            playerTracks.values().forEach(musicPlayer::removeTrack);
+            playerTracks.clear();
+            audience.forEach(p -> playerTracks.put(p.getUniqueId(), track));
+        }
+        GlobalTrack oldTrack;
+        synchronized (m_currentTrack) {
+            oldTrack = m_currentTrack.set(0, track);
+        }
+        musicPlayer.removeTrack(oldTrack);
+        musicPlayer.playTrack(track);
+    }
+
+    public static boolean stopGlobalTrack(@NotNull MusicPlayer musicPlayer) {
+        GlobalTrack current;
+        synchronized (m_currentTrack) {
+            current = m_currentTrack.set(0, null);
+        }
+        if (current == null)
+            return false;
+        Collection<? extends Player> audience = current.getPlayers();
+        synchronized (playerTracks) {
+            audience.forEach(p -> playerTracks.remove(p.getUniqueId()));
+        }
+        musicPlayer.removeTrack(current);
+        return true;
+    }
+
+    public static void startPlayerTrack(@NotNull MusicPlayer musicPlayer, @NotNull Player player, @Nullable BasePlayerTrack track) {
+        UUID uuid = player.getUniqueId();
+        BasePlayerTrack oldTrack;
+        synchronized (playerTracks) {
+            oldTrack = playerTracks.put(uuid, track);
+        }
+        stopPlayerTrack(musicPlayer, player, oldTrack);
+        musicPlayer.playTrack(track);
+    }
+
+    public static void stopPlayerTrack(@NotNull MusicPlayer musicPlayer, @NotNull Player player) {
+        UUID uuid = player.getUniqueId();
+        BasePlayerTrack oldTrack;
+        synchronized (playerTracks) {
+            oldTrack = playerTracks.remove(uuid);
+        }
+        stopPlayerTrack(musicPlayer, player, oldTrack);
+    }
+
+    private static void stopPlayerTrack(@NotNull MusicPlayer musicPlayer, @NotNull Player player, @Nullable BasePlayerTrack oldTrack) {
+        if (oldTrack != null) {
+            oldTrack.removePlayer(player);
+            if (oldTrack.countPlayers() == 0) {
+                musicPlayer.removeTrack(oldTrack);
+                if (oldTrack instanceof GlobalTrack) {
+                    synchronized (m_currentTrack) {
+                        if (oldTrack == m_currentTrack.get(0))
+                            m_currentTrack.set(0, null);
+                    }
+                }
+            }
+        }
+    }
+
+    public static void startJukebox(@NotNull MusicPlayer musicPlayer, @NotNull Location loc, @Nullable LocationTrack track) {
+        LocationTrack oldTrack;
+        synchronized (activeJukebox) {
+            oldTrack = activeJukebox.put(loc, track);
+        }
+        musicPlayer.removeTrack(oldTrack);
+        musicPlayer.playTrack(track);
+    }
+
+    public static void stopJukebox(@NotNull MusicPlayer musicPlayer, @NotNull Location loc) {
+        LocationTrack oldTrack;
+        synchronized (activeJukebox) {
+            oldTrack = activeJukebox.remove(loc);
+        }
+        musicPlayer.removeTrack(oldTrack);
+    }
 
     @Contract("_, _, _, !null -> !null")
     public static <T> @Nullable T getArgumentOrDefault(CommandContext<CommandSourceStack> ctx, String name, Class<T> clazz, T def) {

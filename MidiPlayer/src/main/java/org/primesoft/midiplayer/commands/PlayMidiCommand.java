@@ -53,14 +53,10 @@ import org.jetbrains.annotations.NotNull;
 import org.primesoft.midiplayer.MusicPlayer;
 import org.primesoft.midiplayer.midiparser.NoteFrame;
 import org.primesoft.midiplayer.midiparser.NoteTrack;
-import org.primesoft.midiplayer.track.BasePlayerTrack;
 import org.primesoft.midiplayer.track.PlayerTrack;
 import org.primesoft.midiplayer.utils.CommandUtils;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 
 /**
@@ -70,7 +66,6 @@ import java.util.UUID;
 public class PlayMidiCommand implements Command<CommandSourceStack>, Listener {
 
     private final MusicPlayer m_player;
-    protected static final Map<UUID, BasePlayerTrack> m_tracks = new HashMap<>();
     private final JavaPlugin m_plugin;
 
     public PlayMidiCommand(@NotNull JavaPlugin plugin, @NotNull MusicPlayer player) {
@@ -80,13 +75,7 @@ public class PlayMidiCommand implements Command<CommandSourceStack>, Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        Player p = event.getPlayer();
-        UUID uuid = p.getUniqueId();
-        synchronized (m_tracks) {
-            BasePlayerTrack track = m_tracks.remove(uuid);
-            if (track != null)
-                m_player.removeTrack(track);
-        }
+        CommandUtils.stopPlayerTrack(m_player, event.getPlayer());
     }
 
     @Override
@@ -108,17 +97,7 @@ public class PlayMidiCommand implements Command<CommandSourceStack>, Listener {
         final NoteFrame[] notes = noteTrack.getNotes();
 
         final PlayerTrack track = new PlayerTrack(audience.toArray(new Player[0]), notes);
-        audience.forEach(player -> {
-            UUID uuid = player.getUniqueId();
-            synchronized (m_tracks) {
-                BasePlayerTrack oldTrack = m_tracks.put(uuid, track);
-                if (oldTrack != null) {
-                    oldTrack.removePlayer(player);
-                    if (oldTrack.countPlayers() == 0)
-                        m_player.removeTrack(oldTrack);
-                }
-            }
-        });
+        audience.forEach(player -> CommandUtils.startPlayerTrack(m_player, player, track));
         m_player.playTrack(track);
 
         return SINGLE_SUCCESS;
