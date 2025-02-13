@@ -91,8 +91,6 @@ public class PlayMidiLocationCommand implements Command<CommandSourceStack> {
         else if (noteTrack.isError())
             return 0;
 
-        plugin.getLogger().info("Location: " + loc);
-
         NoteFrame[] notes = noteTrack.getNotes();
         Collection<Player> audience = range < 0 ? loc.getWorld().getPlayers() : loc.getNearbyPlayers(range);
         LocationTrack track = new LocationTrack(loc, audience.toArray(new Player[0]), notes);
