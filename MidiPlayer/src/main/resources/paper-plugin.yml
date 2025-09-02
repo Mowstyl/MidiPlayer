@@ -1,9 +1,11 @@
-name: ${project.name}
+name: ${name}
 main: org.primesoft.midiplayer.MidiPlayerMain
-version: ${project.version}
+version: ${version}
 authors: [SBPrime]
-api-version: 1.19
-description: ${project.description}
+api-version: 1.21
+description: ${description}
+libraries:
+  - com.googlecode.json-simple:json-simple:1.1.1
 permissions:
   musicplayer.*:
     description: Grants access to all MidiPlayer permissions
